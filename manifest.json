@@ -1,0 +1,27 @@
+{
+    "manifest_version": 3,
+    "name": "Guildhall",
+    "version": "1.0",
+    "description": "Enhancement Suite For RoleplayerGuild.com",
+    "content_scripts": [{
+        "matches": ["https://*.roleplayerguild.com/*"],
+		"js": ["guildhall.js"],
+		"css": ["newCSS.css"],
+		"run_at": "document_end"
+	}],
+    "permissions": [
+		"storage",
+		"scripting",
+		"cookies"
+       ],
+	"host_permissions": [
+		"https://*.roleplayerguild.com/*"
+	],
+	"web_accessible_resources": [{
+		"resources": ["bbCodeExtension.js"],
+		"matches": ["https://*.roleplayerguild.com/*"]
+	}],
+	"background": {
+		"service_worker": "cookieManager.js"
+	}
+}
