@@ -2,7 +2,11 @@
 
 
 function getPoster(postElement){
-	return postElement.querySelector('.user-uname').textContent.trim()						//Grab username and remove leading/trailing spaces and newlines
+	const posterName = postElement.querySelector('.user-uname')
+	if(posterName){
+		return posterName.textContent.trim()						//Grab username and remove leading/trailing spaces and newlines. Account for zeroth-posts without a poster
+	}
+	return ''
 }
 
 function getCurrentUser(){
@@ -470,7 +474,7 @@ function initializeAccountLinker(accountsList){
 	if(path === '/users/' + currentUser.toLowerCase().replace(' ', '-')){												//Account for - in usernames with spaces
 		displayAccountSwitcherButton(accountsList)															//Displays "Remember/Forget This Account"
 	}
-	createSwitcher(accountsList)
+	createSwitcher(accountsList.sort())
 }
 
  chrome.runtime.onMessage.addListener(function(request, sender) {														//Receive refresh event
