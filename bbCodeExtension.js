@@ -8,6 +8,7 @@
 var newTagList = ['font', 'br', 'legend', 'left', 'marquee', 'glow', 'progress']								//ADD NEW TAGS HERE! They'll be pre-parsed before being passed to the normal posthandler, so these should never end up being treated as normal tags. This allows us to keep both normal and custom tags in the same object
 newEditButton()																									//Safe to show on any page...? TODO: VERIFY
 newPostButton()																									//Safe to show on any page...? TODO: VERIFY
+newBioButton()																									//Pretty sure these are all safe because of AJAX stuff
 var XBBCODE = bbCodeHandler()																					//Setting page variables...
 XBBCODE.processAllPosts()
 
@@ -460,6 +461,56 @@ function bbCodeHandler() {
             },
             closeTag: function(params, content) {
                 return ''
+            },
+        },
+		url: {
+            trimContents: true,
+            urlErrorStack: [],
+            openTag: function(params, content, tagStack, errorQueue) {
+                var myUrl
+
+                if (!params) {
+                    myUrl = content.trim().replace(/<.*?>/g, '')
+                } else {
+                    myUrl = params
+                        .trim()
+                }
+
+                if (
+                    myUrl.indexOf('http://') !== 0 &&
+                    myUrl.indexOf('https://') !== 0 &&
+                    myUrl.indexOf('ftp://') !== 0
+                ) {
+                    // they don't have a valid protocol at the start, so add one [#63]
+                    myUrl = 'http://' + myUrl
+                }
+
+                urlPattern.lastIndex = 0
+                if (!urlPattern.test(myUrl)) {
+                    this.urlErrorStack.push(true)
+                    errorQueue.push('One of your [url] tags has an invalid url')
+                    if (params) return '&#91;url=' + myUrl + '&#93;'
+                    else return '&#91;url&#93;'
+                }
+
+                // dumb way to see if user is linking internally or externally
+                // keep synced with Autolinker#replaceFn definedin this file
+                this.urlErrorStack.push(false)
+                //If we reach this point, it is a valid URL
+                if (/^((https?:\/\/)?roleplayerguild.com)/i.test(myUrl)) {
+                    // internal link
+                    return '<a href="' + myUrl + '">' + content
+                } else {
+                    // external link
+                    return (
+                        '<a target="_blank" rel="nofollow noopener" href="' +
+                        myUrl +
+                        '">' + content
+                    )
+                }
+            },
+            closeTag: function(params, content) {
+                return this.urlErrorStack.pop() ? '&#91;/url&#93;' : '</a>'
             },
         },
     }
@@ -1032,56 +1083,7 @@ function bbCodeHandler() {
         //   },
         //   restrictChildrenTo: ["*", "li"]
         // },
-        url: {
-            trimContents: true,
-            urlErrorStack: [],
-            openTag: function(params, content, tagStack, errorQueue) {
-                var myUrl
-
-                if (!params) {
-                    myUrl = content.trim().replace(/<.*?>/g, '')
-                } else {
-                    myUrl = params
-                        .trim()
-                }
-
-                if (
-                    myUrl.indexOf('http://') !== 0 &&
-                    myUrl.indexOf('https://') !== 0 &&
-                    myUrl.indexOf('ftp://') !== 0
-                ) {
-                    // they don't have a valid protocol at the start, so add one [#63]
-                    myUrl = 'http://' + myUrl
-                }
-
-                urlPattern.lastIndex = 0
-                if (!urlPattern.test(myUrl)) {
-                    this.urlErrorStack.push(true)
-                    errorQueue.push('One of your [url] tags has an invalid url')
-                    if (params) return '&#91;url=' + myUrl + '&#93;'
-                    else return '&#91;url&#93;'
-                }
-
-                // dumb way to see if user is linking internally or externally
-                // keep synced with Autolinker#replaceFn definedin this file
-                this.urlErrorStack.push(false)
-                //If we reach this point, it is a valid URL
-                if (/^((https?:\/\/)?roleplayerguild.com)/i.test(myUrl)) {
-                    // internal link
-                    return '<a href="' + myUrl + '">'
-                } else {
-                    // external link
-                    return (
-                        '<a target="_blank" rel="nofollow noopener" href="' +
-                        myUrl +
-                        '">'
-                    )
-                }
-            },
-            closeTag: function(params, content) {
-                return this.urlErrorStack.pop() ? '&#91;/url&#93;' : '</a>'
-            },
-        },
+        
         /*
       The [*] tag is special since the user does not define a closing [/*] tag when writing their bbcode.
       Instead this module parses the code and adds the closing [/*] tag in for them. None of the tags you
@@ -1531,6 +1533,10 @@ function findNewClosingNoParse(tag, message, data = false, tagStack = [], errorQ
 		for(let post of postBodies){
 			post.innerHTML = parseNewBBCode(post.getInnerHTML())
 		}
+		bioBody = document.querySelectorAll('.user-bio')
+		for(let bio of bioBody){
+			bio.innerHTML = parseNewBBCode(bio.getInnerHTML())
+		}
 	}
 	me.processAllPosts = processAllPosts
     return me
@@ -1610,9 +1616,11 @@ function newEditButton(){
 	$post_body.html($spinner);
 
 	$cancel_btn = $('<button style="margin-left: 5px;" class="btn btn-default post-edit-cancel-btn">Cancel</button>');
-
+	
+	const postEditURL = window.location.pathname.startsWith('/convos/') ? '/pms/' + post_id : '/posts/' + post_id				//Different retrieval URLs for PMs vs posts
+	
 	$.ajax({
-	  url: '/posts/' + post_id + '/raw',
+	  url: postEditURL + '/raw',
 	  dataType: 'html',
 	  cache: false,
 	  // This is going to be post.markup || post.text
@@ -1648,7 +1656,7 @@ function newEditButton(){
 			var text_to_save = e.getContent();
 			var reason = e.$editor.find('input[name="reason"]').val()
 			$.ajax({
-			  url: '/api/posts/' + post_id,
+			  url: '/api' + postEditURL,											//e.g. /api/pms/postID, /api/posts/postID
 			  dataType: 'json',
 			  type: 'POST',
 			  headers: { 'X-HTTP-Method-Override': 'PUT' },
@@ -1699,8 +1707,54 @@ function newEditButton(){
 	return false;
   });
 }
+
+function newBioButton(){
+	$('#edit-bio').unbind('click')
+    $('#edit-bio').on('click', function() {
+      console.log('click');
+      var userId = $(this).attr('data-user-id');
+      var $cancelBtn = $('<button style="margin-left: 5px;" class="btn btn-default post-edit-cancel-btn">Cancel</button>');
+      var $editor = $('<textarea class="editor form-control">'+processCustomCode($('#bio-markup').text())+'</textarea>');										//Add custom processing before supplying to bio editor
+      $('.user-bio').html(
+        "<p>Write whatever you want in your bio. Everyone can see it, even people not logged in.</p>"+
+        "<p>Ideas: Introduce yourself, keep a list of roleplays you're involved in, describe what kind of roleplays/partners you're looking for, provide off-site contact info, share some hilarious jokes, share art, share dank memes, etc.</p>"+
+        "<p>Must be no more than 100000 chars</p>"
+      );
+      $('.user-bio').append($editor);
+      $editor.bbcode({
+        charLimit: 100000,
+        savable: true,
+        onSave: function(e) {
+          console.log('Saving2');
+          var newBioMarkup = e.getContent();
+          $.ajax({
+            url: '/api/users/' + userId + '/bio',
+            dataType: 'json',
+            type: 'POST',
+            headers: { 'X-HTTP-Method-Override': 'PUT' },
+            data: { markup: XBBCODE.preParser(newBioMarkup) },																									//Process new tags before sending to server
+            success: function(updatedUser) {
+              $('.user-bio').html(XBBCODE.parseNewBBCode(updatedUser.bio_html) || 'User has no bio, yet');														//Display new bio when saved
+              $('#bio-markup').text(updatedUser.bio_markup);
+              $('#bio-html').text(updatedUser.bio_html);
+            }
+          });
+        }
+      });
+
+      $cancelBtn.insertAfter(
+        $('.user-bio .md-footer button[data-handler="cmdSave"]')
+      );
+
+      $cancelBtn.on('click', function() {
+        $('.user-bio').html($('#bio-html').text() || 'User has no bio, yet');
+      });
+    });
+  	
+}
+
 function newPostButton(){
-	let postForm = document.querySelector('[id="new-post"]')
+	let postForm = document.querySelector('[id="new-post"]') || document.querySelector('[id="reply-form"]')
 	if(!postForm){
 		return
 	}
