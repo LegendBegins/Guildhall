@@ -331,7 +331,7 @@ function applyChanges(){
 	
 	const path = window.location.pathname
 	const userPath = '/users/' + currentUser.toLowerCase().replace(' ', '-')						//Account for space to - conversion
-	if(path.startsWith('/users/') && (path !== userPath)){											//We're either on our profile or someone else's, but not a subdirectory of ours (e.g. /edit)
+	if(path.startsWith('/users/') && !(path.startsWith(userPath + '/'))){							//We're either on our profile or someone else's, but not a subdirectory of ours like /edit
 		displayBlockButton()																		//We're on someone else's page
 	}
 	if(path === userPath + '/edit'){																//Editing our own profile
