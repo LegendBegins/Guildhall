@@ -334,8 +334,8 @@ function applyChanges(){
 	}
 	
 	const path = window.location.pathname
-	const userPath = '/users/' + currentUser.toLowerCase().replace(' ', '-')						//Account for space to - conversion
-	if(path.startsWith('/users/') && !(path.startsWith(userPath + '/'))){							//We're either on our profile or someone else's, but not a subdirectory of ours like /edit
+	const userPath = '/users/' + currentUser.toLowerCase().replaceAll(' ', '-')						//Account for space to - conversion
+	if(path.startsWith('/users/') && !(path.startsWith(userPath + '/')) && path !== userPath){		//We're either on our profile or someone else's, but not a subdirectory of ours like /edit
 		displayBlockButton()																		//We're on someone else's page
 	}
 	if(path === userPath + '/edit'){																//Editing our own profile
@@ -471,7 +471,7 @@ function displayBlockButton(){
 }
 function initializeAccountLinker(accountsList){
 	const path = window.location.pathname
-	if(path === '/users/' + currentUser.toLowerCase().replace(' ', '-')){												//Account for - in usernames with spaces
+	if(path === '/users/' + currentUser.toLowerCase().replaceAll(' ', '-')){												//Account for - in usernames with spaces
 		displayAccountSwitcherButton(accountsList)															//Displays "Remember/Forget This Account"
 	}
 	createSwitcher(accountsList.sort())
