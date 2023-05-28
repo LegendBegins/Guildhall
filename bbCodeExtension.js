@@ -468,14 +468,12 @@ function bbCodeHandler() {
             urlErrorStack: [],
             openTag: function(params, content, tagStack, errorQueue) {
                 var myUrl
-
                 if (!params) {
                     myUrl = content.trim().replace(/<.*?>/g, '')
                 } else {
                     myUrl = params
                         .trim()
                 }
-
                 if (
                     myUrl.indexOf('http://') !== 0 &&
                     myUrl.indexOf('https://') !== 0 &&
