@@ -318,12 +318,28 @@ function displayAccountSwitcherButton(rememberedAccounts){																//TODO
 
 function applyChanges(){
 	initializeBackgroundScript()
-	let bbcodeScript = document.createElement('script');														//Inject new BBCode Editor
+	let tagScript = document.createElement('script');														//Inject all tags
+	tagScript.src = chrome.runtime.getURL('TagDefinitions.js');
+	
+	let treeScript = document.createElement('script');														//Inject tree processor
+	treeScript.src = chrome.runtime.getURL('Tree.js');
+	
+	let bbcodeScript = document.createElement('script');													//Inject new BBCode Editor
 	bbcodeScript.src = chrome.runtime.getURL('bbCodeExtension.js');
-	bbcodeScript.onload = function() {
+	
+	tagScript.onload = function() {
+		(document.head || document.documentElement).appendChild(treeScript)									//After tagScript loads, load treeScript
 		this.remove();
 	};
-	(document.head || document.documentElement).appendChild(bbcodeScript);
+	treeScript.onload = function() {
+		(document.head || document.documentElement).appendChild(bbcodeScript)								//After treeScript loads, load bbcodeScript
+		this.remove();
+	};
+	bbcodeScript.onload = function() {
+		this.remove();																						//This forces our JS to load in order (I think)
+	};
+	
+	(document.head || document.documentElement).appendChild(tagScript);
 	showRevisions()																					//Safe to show on any page
 	processBlockedUsers(getBlockedUsers())															//Safe to show on any page
 	if(getTheme() === 'light'){
