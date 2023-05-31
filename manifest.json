@@ -18,7 +18,7 @@
 		"https://*.roleplayerguild.com/*"
 	],
 	"web_accessible_resources": [{
-		"resources": ["bbCodeExtension.js"],
+		"resources": ["bbCodeExtension.js", "Tree.js", "TagDefinitions.js"],
 		"matches": ["https://*.roleplayerguild.com/*"]
 	}],
 	"background": {
